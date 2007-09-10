@@ -43,6 +43,10 @@ my $loop = $o->loop;
 
 ### $loop
 
+my $output = $o->output;
+ok($output,'got output');
+
+### $output
 
 
 ok($a->menus_count == 1 ,'menus count is one');

@@ -7,7 +7,7 @@ use Exporter;
 use vars qw(@ISA @EXPORT $VERSION);
 @ISA = qw/ Exporter /;
 @EXPORT = qw(menu ___menus_ ___menus_order menus menus_count);
-$VERSION = sprintf "%d.%02d", q$Revision: 1.2 $ =~ /(\d+)/g;
+$VERSION = sprintf "%d.%02d", q$Revision: 1.3 $ =~ /(\d+)/g;
 
 sub menu {
    my ($self,$label) = @_;
@@ -54,6 +54,12 @@ use strict;
 use LEOCHARRE::DEBUG;
 use warnings;
 use Carp;
+
+$CGI::Application::Plugin::MenuObject::DEFAULT_TMPL = q{
+<div class="<TMPL_VAR MAIN_MENU_CLASS>"><p>
+<TMPL_LOOP MAIN_MENU_LOOP><nobr><b><a href="<TMPL_VAR URL>">[<TMPL_VAR LABEL>]</a></b></nobr> </TMPL_LOOP>
+</p></div>};
+
 
 sub new {
    my $class = shift;
@@ -173,6 +179,19 @@ sub __is_runmode_name {
    return 1;
 }
 
+
+sub output {
+   my $self = shift;
+   require HTML::Template;
+   my $tmpl = new HTML::Template( 
+      die_on_bad_params => 0, 
+      scalarref => \$CGI::Application::Plugin::MenuObject::DEFAULT_TMPL,
+   ) 
+      or die('cant instance HTML::Template object');
+   
+   $tmpl->param( MAIN_MENU_LOOP => $self->loop, MAIN_MENU_CLASS => 'menu_class_'.$self->name );
+   return $tmpl->output;
+}
 
 
 
@@ -294,6 +313,13 @@ The result is:
 
 get loop suitable for HTML::Template object
 See SYNOPSIS.
+
+=head2 output()
+
+If you just want the output with the default hard coded template.
+The default template code is stored in:
+
+   $CGI::Application::Plugin::MenuObject::DEFAULT_TMPL
 
 =head2 ADDING MENU ITEMS
 

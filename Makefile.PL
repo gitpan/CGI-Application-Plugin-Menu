@@ -6,5 +6,6 @@ WriteMakefile(
      'LEOCHARRE::DEBUG' => '1.02',
      'CGI::Application' => 0,
      'Smart::Comments' => 0,
+     'HTML::Template' => 0,
    }, 
 );

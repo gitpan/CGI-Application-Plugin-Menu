@@ -4,199 +4,63 @@ use LEOCHARRE::DEBUG;
 use warnings;
 use Carp;
 use Exporter;
+use HTML::Template::Menu;
 use vars qw(@ISA @EXPORT $VERSION);
 @ISA = qw/ Exporter /;
-@EXPORT = qw(menu ___menus_ ___menus_order menus menus_count);
-$VERSION = sprintf "%d.%02d", q$Revision: 1.3 $ =~ /(\d+)/g;
+@EXPORT = qw(menu ___menus_ ___menus_order menus menus_count menu_delete);
+$VERSION = sprintf "%d.%02d", q$Revision: 1.5 $ =~ /(\d+)/g;
 
 sub menu {
    my ($self,$label) = @_;
    $label ||= 'main';
    
    unless ( exists $self->___menus_->{$label} ) {
-      $self->___menus_->{$label} = new CGI::Application::Plugin::MenuObject;
-      $self->___menus_->{$label}->_name_set($label);
+      $self->___menus_->{$label} = 
+         # new CGI::Application::Plugin::MenuObject;
+         new HTML::Template::Menu;
+         
+      $self->___menus_->{$label}->name_set($label);
       push @{$self->___menus_order},$label;
    }
    return $self->___menus_->{$label};
 }
 
-sub menus {
-   my $self = shift;
-   return $self->___menus_order;
-}
+*menus = \&___menus_order;
 
 sub ___menus_ {
-   my $self = shift;
-   $self->{'__CGI::Application::Plugin::Menu::Objects'} ||={};
-   return $self->{'__CGI::Application::Plugin::Menu::Objects'};
+   $_[0]->{'__CGI::Application::Plugin::Menu::Objects'} ||={};
+   $_[0]->{'__CGI::Application::Plugin::Menu::Objects'};
 }
 
 sub ___menus_order {
-   my $self = shift;
-   $self->{'__CGI::Application::Plugin::Menu::ObjectsOrder'} ||=[];
-   return $self->{'__CGI::Application::Plugin::Menu::ObjectsOrder'};  
+   $_[0]->{'__CGI::Application::Plugin::Menu::ObjectsOrder'} ||=[];
+   $_[0]->{'__CGI::Application::Plugin::Menu::ObjectsOrder'};
 }
 
-sub menus_count {
+sub menus_count { scalar @{$_[0]->menus} }
+
+sub menu_delete { 
    my $self = shift;
-   my $count = scalar @{$self->menus};
-   return $count;
+   my $label = shift;
+   delete $self->___menus_->{$label};
+
+   my @order;
+   for my $menu_label ( @{$self->___menus_order} ){
+      $menu_label eq $label and next;
+      push @order, $menu_label;
+   }
+   $self->{'__CGI::Application::Plugin::Menu::ObjectsOrder'} = \@order;
+
+   1;
 }
+   
+
+
 
 1;
 
 
 
-
-package CGI::Application::Plugin::MenuObject;
-use strict;
-use LEOCHARRE::DEBUG;
-use warnings;
-use Carp;
-
-$CGI::Application::Plugin::MenuObject::DEFAULT_TMPL = q{
-<div class="<TMPL_VAR MAIN_MENU_CLASS>"><p>
-<TMPL_LOOP MAIN_MENU_LOOP><nobr><b><a href="<TMPL_VAR URL>">[<TMPL_VAR LABEL>]</a></b></nobr> </TMPL_LOOP>
-</p></div>};
-
-
-sub new {
-   my $class = shift;
-   my $self = {};
-   bless $self,$class;
-   return $self;
-}
-
-sub name {
-   my $self = shift;
-   $self->{_name_} ||= 'main'; # redundant (?)
-   return $self->{_name_};
-}
-
-sub _name_set {
-   my($self,$val) = @_;
-   defined $val or confess;   
-   return $self->{_name_} = $val;
-   return 1;
-}
-
-
-sub count {
-   my $self = shift;
-   my $a = $self->_get_menuitems_order;
-   return scalar @$a;
-}
-
-sub loop {
-   my $self = shift;
-   my $loop = $self->_get_main_menu_loop;
-   return $loop;
-}
-
-sub add {
-   my($self,$arg1,$label) = @_;
-   defined $arg1 or confess('missing argument');
-
-   my $url;
-
-   if (__is_runmode_name($arg1) ){
-      $url = "?rm=$arg1"; # TODO, what is the runmode param string method in CGI::Application ?
-      $label = __runmode_name_prettyfy($arg1) unless defined $label;
-   }
-   else {
-      $url = $arg1;
-   }
-   $label = $url unless defined $label;
-
-   debug(" arg1 $arg1, url $url, label $label\n");
-
-   $self->_add_menu_item($arg1,$url,$label) or return 0;
-   return 1;
-}
-
-sub _add_menu_item {
-   my ($self,$arg1,$url,$label) = @_; 
-   
-   my $hash = $self->_get_menuitems;
-   my $array = $self->_get_menuitems_order;
-
-   if (exists $hash->{$arg1}){
-      debug("Menu item [$arg1] was already entered. Skipped.\n");
-      return 0;
-   }
-
-   push @$array, $arg1;
-      
-
-   $hash->{$arg1} = {
-      arg1 => $arg1,
-      url => $url,
-      label => $label,
-   };
-
-   return 1;   
-}
-
-sub _get_main_menu_loop {
-   my $self = shift;
-   
-   my $hash = $self->_get_menuitems;
-   my $array = $self->_get_menuitems_order;
-
-   my $loop=[];
-   for (@$array){
-      my  $arg1 = $_;
-      push @$loop, { url => $hash->{$arg1}->{url}, label => $hash->{$arg1}->{label} };
-   }
-   return $loop;   
-}
-
-sub _get_menuitems {
-   my $self = shift;
-   $self->{__menuitems__} ||={};
-   return $self->{__menuitems__};
-}
-
-sub _get_menuitems_order {
-   my $self = shift;
-   $self->{__menuitems__order__} ||=[];
-   return $self->{__menuitems__order__};
-}
-
-sub __runmode_name_prettyfy {
-   my $val = shift;
-   
-   my $label = lc $val;
-   $label=~s/\_/ /g;
-   $label=~s/\b([a-z])/uc $1/eg;
-   return $label;   
-}
-
-sub __is_runmode_name {
-   my $val = shift;
-   $val =~/^[a-z0-9_]+$/i or return 0;
-   return 1;
-}
-
-
-sub output {
-   my $self = shift;
-   require HTML::Template;
-   my $tmpl = new HTML::Template( 
-      die_on_bad_params => 0, 
-      scalarref => \$CGI::Application::Plugin::MenuObject::DEFAULT_TMPL,
-   ) 
-      or die('cant instance HTML::Template object');
-   
-   $tmpl->param( MAIN_MENU_LOOP => $self->loop, MAIN_MENU_CLASS => 'menu_class_'.$self->name );
-   return $tmpl->output;
-}
-
-
-
-
-1;
 
 __END__
 
@@ -210,6 +74,66 @@ CGI::Application::Plugin::Menu - manage navigation menus for cgi apps
   
    use base 'CGI::Application';   
    use CGI::Application::Plugin::Menu;
+
+   sub _get_menu_outputs {
+      my $self = shift;
+
+
+      my $html_output;
+
+
+
+      my $menu_main  = $self->menu;
+
+      # resolves to a 'Home' link
+      $menu_main->add('/');
+      
+      # makes into runmodelink for CGI::Application 
+      # <a href='?rm=view_stats'>View Statistics</a>
+      $menu_main->add( view_stats, 'View Statistics'); # with label
+      
+      # makes into runmodelink for CGI::Application 
+      # <a href='?rm=view_history'>View History</a>   
+      $menu_main->add('view_history'); # label is optional
+      
+      
+      
+      my $menu_info = $self->menu('info');
+      $menu_info->add('/about_us.html');
+      $menu_info->add('/contact_info.html');
+
+
+
+      
+      $html_output .= 
+         $menu_main->output
+         . $menu_info->output;
+
+      return $html_output;   
+   }
+
+
+
+=head1 EXAMPLE USAGE 1
+
+   sub _inject_menus_into_tmpl {
+      my ($self,$tmpl) = @_;
+
+      my $m = $self->menu;
+
+      $m->add('home'); # ?rm=home / 'Home'
+      $m->add('account_view'); # ?rm=account_view / Account View
+      $m->add('account_edit','edit bogus'); # ?rm=account_edit / edit bogus
+      $m->add('account_delete');
+      $m->add('/info.html'); # /info.html / Info
+
+      $tmpl->param( MENU_LOOP => $m->loop);
+   
+   }
+
+
+
+=head1 EXAMPLE USAGE 2
 
    sub _set_menus_in_template {
       my $self = shift;
@@ -245,16 +169,18 @@ CGI::Application::Plugin::Menu - manage navigation menus for cgi apps
       return 1;
    }
 
+
+
 =head1 DESCRIPTION
 
-This is a simple way ot having menus in your cgi apps.
+This is a simple way of having menus in your cgi apps.
 
 =head1 METHODS
 
 =head2 menu()
 
 if you don't provide an argument, the default is used, which is 'main'.
-returns L<A MENU OBJECT>
+returns HTML::Template::Menu A MENU OBJECT object.
 
 =head2 menus()
 
@@ -278,7 +204,7 @@ They are in the order that they were instanced
 
 =head1 A MENU OBJECT
 
-Are instances of CGI::Application::Plugin::MenuObject.
+Are instances of HTML::Template::Menu
 
 =head2 METHODS
 
@@ -311,15 +237,20 @@ The result is:
 
 =head3 loop()
 
-get loop suitable for HTML::Template object
-See SYNOPSIS.
+   get loop suitable for HTML::Template object
+   See SYNOPSIS.
 
 =head2 output()
 
-If you just want the output with the default hard coded template.
-The default template code is stored in:
+   If you just want the output with the default hard coded template.
+   The default template code is stored in:
 
-   $CGI::Application::Plugin::MenuObject::DEFAULT_TMPL
+   $HTML::Template::Menu::DEFAULT_TMPL
+
+=head2 menu_delete()
+
+Argument is menu label, deletes the menu.
+Returns true, does not check for existance.
 
 =head2 ADDING MENU ITEMS
 
@@ -328,10 +259,8 @@ The default template code is stored in:
    $m->add('home');   
    $m->add('http://helpme.com','Need help?');
    $m->add('logout');
-   
-Elements for the menu are shown in the order they are inserted.
 
-
+   Elements for the menu are shown in the order they are inserted.
 
 
 =head1 AUTOMATICALLY GENERATING A MENU
@@ -346,7 +275,9 @@ Leo Charre leocharre at cpan dot org
 
 CGI::Application
 HTML::Template
+HTML::Template::Menu
 LEOCHARRE::DEBUG
+
 
 =cut
 

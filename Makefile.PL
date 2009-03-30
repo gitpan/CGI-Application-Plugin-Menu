@@ -1,11 +1,27 @@
 use ExtUtils::MakeMaker;
+
 WriteMakefile(
    NAME => 'CGI::Application::Plugin::Menu',
    VERSION_FROM => 'lib/CGI/Application/Plugin/Menu.pm',
+   
+
+   # gen /usr/bin/pmused by Mon Mar 30 15:47:20 EDT 2009 
    PREREQ_PM => {
-     'LEOCHARRE::DEBUG' => '1.02',
-     'CGI::Application' => 0,
-     'Smart::Comments' => 0,
-     'HTML::Template' => 0,
-   }, 
+      'CGI::Application'                  => '4.06',
+      'Carp'                              => '1',
+      'Exporter'                          => '5',
+      'HTML::Template'                    => '2.9',
+      'LEOCHARRE::DEBUG'                  => '1.12',
+      'Smart::Comments'                   => '1',
+      'Test::Simple'                      => '0',
+   },
+
+   
+   LICENSE => 'perl',
+   
+   
+   
+   EXE_FILES => [],
 );
+
+

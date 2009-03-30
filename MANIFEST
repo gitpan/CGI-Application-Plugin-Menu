@@ -1,7 +1,8 @@
-t/0.t
-t/MTest.pm
-lib/CGI/Application/Plugin/Menu.pm
 MANIFEST
 Makefile.PL
-
+lib/CGI/Application/Plugin/Menu.pm
+lib/HTML/Template/Menu.pm
+t/0.t
+t/99_HTML-Template-Menu.t
+t/MTest.pm
 META.yml                                 Module meta-data (added by MakeMaker)

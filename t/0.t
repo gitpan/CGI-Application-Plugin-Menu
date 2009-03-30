@@ -55,4 +55,7 @@ ok($a->menu('session'),'new menu');
 ok($a->menus_count == 2 ,'menus count is two');
 
 
+ok( $a->menu_delete('session'),'deleted menu "session"' );
+ok( $a->menus_count == 1 ,'menu count is now 1');
+
 

@@ -8,7 +8,7 @@ use HTML::Template::Menu;
 use vars qw(@ISA @EXPORT $VERSION);
 @ISA = qw/ Exporter /;
 @EXPORT = qw(menu ___menus_ ___menus_order menus menus_count menu_delete);
-$VERSION = sprintf "%d.%02d", q$Revision: 1.5 $ =~ /(\d+)/g;
+$VERSION = sprintf "%d.%02d", q$Revision: 1.6 $ =~ /(\d+)/g;
 
 sub menu {
    my ($self,$label) = @_;
@@ -56,9 +56,7 @@ sub menu_delete {
    
 
 
-
 1;
-
 
 
 
@@ -77,14 +75,11 @@ CGI::Application::Plugin::Menu - manage navigation menus for cgi apps
 
    sub _get_menu_outputs {
       my $self = shift;
-
-
+   
       my $html_output;
-
-
-
+   
       my $menu_main  = $self->menu;
-
+   
       # resolves to a 'Home' link
       $menu_main->add('/');
       
@@ -95,58 +90,51 @@ CGI::Application::Plugin::Menu - manage navigation menus for cgi apps
       # makes into runmodelink for CGI::Application 
       # <a href='?rm=view_history'>View History</a>   
       $menu_main->add('view_history'); # label is optional
-      
-      
+         
       
       my $menu_info = $self->menu('info');
       $menu_info->add('/about_us.html');
       $menu_info->add('/contact_info.html');
-
-
-
       
       $html_output .= 
          $menu_main->output
          . $menu_info->output;
-
+   
       return $html_output;   
    }
-
 
 
 =head1 EXAMPLE USAGE 1
 
    sub _inject_menus_into_tmpl {
       my ($self,$tmpl) = @_;
-
+   
       my $m = $self->menu;
-
+   
       $m->add('home'); # ?rm=home / 'Home'
       $m->add('account_view'); # ?rm=account_view / Account View
       $m->add('account_edit','edit bogus'); # ?rm=account_edit / edit bogus
       $m->add('account_delete');
       $m->add('/info.html'); # /info.html / Info
-
-      $tmpl->param( MENU_LOOP => $m->loop);
    
+      $tmpl->param( MENU_LOOP => $m->loop);   
    }
-
 
 
 =head1 EXAMPLE USAGE 2
 
    sub _set_menus_in_template {
       my $self = shift;
-
-
+   
+   
       my $m = $self->menu('main');
    
       $m->add('home','home page');
       $m->add('view_stats');
       $m->add('http://cpan.org','visit cpan');
-
+   
       $m->name; # returns 'main', for this example
-
+   
       # GETTING THE HTML TEMPLATE LOOP
    
       my $main_menu_loop = $m->loop; 
@@ -157,7 +145,7 @@ CGI::Application::Plugin::Menu - manage navigation menus for cgi apps
    
       #or
       $tmpl->param( 'MAIN_MENU' => $self->menu_get('main_menu')->loop );   
-
+   
       # IN YOUR HTML TEMPLATE:
       # 
       # <ul>
@@ -165,11 +153,9 @@ CGI::Application::Plugin::Menu - manage navigation menus for cgi apps
       #  <li><a href="<TMPL_VAR URL>"><TMPL_VAR LABEL></a></li>
       #  </TMPL_LOOP>
       # </ul>
-
+   
       return 1;
    }
-
-
 
 =head1 DESCRIPTION
 
@@ -267,21 +253,29 @@ Returns true, does not check for existance.
 
 See CGI::Application::Plugin::AutoMenuitem
 
+
+=head1 SEE ALSO
+
+L<CGI::Application>
+L<HTML::Template>
+L<HTML::Template::Menu>
+
+
 =head1 AUTHOR
 
 Leo Charre leocharre at cpan dot org
 
-=head1 SEE ALSO
+=head1 LICENSE
 
-CGI::Application
-HTML::Template
-HTML::Template::Menu
-LEOCHARRE::DEBUG
+This package is free software; you can redistribute it and/or modify it under the same terms as Perl itself, i.e., under the terms of the "Artistic License" or the "GNU General Public License".
 
+=head1 DISCLAIMER
+
+This package is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+See the "GNU General Public License" for more details.
 
 =cut
-
-
 
 
 

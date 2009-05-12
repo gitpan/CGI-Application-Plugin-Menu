@@ -49,6 +49,13 @@ sub loop {
    return $loop;
 }
 
+sub __to_icon_name {
+   my $r = lc( __prettify_string($_[0]) );
+   $r=~s/ {1,}/_/g;
+   $r;
+   
+}
+
 sub add {
    my($self,$arg1,$label) = @_;
    defined $arg1 or confess('missing argument');
@@ -56,6 +63,7 @@ sub add {
    my $url;
 
    if (__is_runmode_name($arg1) ){
+
       $url = "?rm=$arg1"; # TODO, what is the runmode param string method in CGI::Application ?
       $label = __runmode_name_prettyfy($arg1) unless defined $label;
    }
@@ -68,14 +76,16 @@ sub add {
    }
    $label = $url unless defined $label;
 
-   debug(" arg1 $arg1, url $url, label $label\n");
+   my $icon=__to_icon_name($label);
 
-   $self->_add_menu_item($arg1,$url,$label) or return 0;
+   debug(" arg1 $arg1, url $url, label $label, icon $icon\n");
+
+   $self->_add_menu_item($arg1,$url,$label,$icon) or return 0;
    return 1;
 }
 
 sub _add_menu_item {
-   my ($self,$arg1,$url,$label) = @_; 
+   my ($self,$arg1,$url,$label,$icon) = @_; 
    
    my $hash = $self->_get_menuitems;
    my $array = $self->_get_menuitems_order;
@@ -86,12 +96,13 @@ sub _add_menu_item {
    }
 
    push @$array, $arg1;
-      
+   
 
    $hash->{$arg1} = {
       arg1 => $arg1,
       url => $url,
       label => $label,
+      icon => $icon,
    };
 
    return 1;   
@@ -106,7 +117,7 @@ sub _get_main_menu_loop {
    my $loop=[];
    for (@$array){
       my  $arg1 = $_;
-      push @$loop, { url => $hash->{$arg1}->{url}, label => $hash->{$arg1}->{label} };
+      push @$loop, { url => $hash->{$arg1}->{url}, label => $hash->{$arg1}->{label}, icon => $hash->{$arg1}->{icon} };
    }
    return $loop;   
 }
@@ -206,44 +217,45 @@ sub menu_class_set {
 
 =head1 NAME
 
-HTML::Template::Menu
+HTML::Template::Menu - ease menu items for quick web user interface
 
 =head1 SYNOPSIS
 
    use HTML::Template::Menu;
-
+   
    my $m = new HTML::Template::Menu;
-
+   
    $m->add('/','home');
    $m->add('/contact.html');
-
-
+   $m->add('http://google.com');
+   $m->add('http://titantv.com', 'view tv listings');
+   
+   print $m->output;
 
 =head1 METHODS
 
-=head3 new()
+=head2 new()
 
-new menu
+=head2 name()
 
+Returns name of the menu.
 
+=head2 name_set()
 
-=head3 name()
+Sets name of menu, argument is string.
+   
+   my $m = new HTML::Template::Menu;
+   $m->name_set('login_menu');
 
-returns name of the menu.
+=head2 add()
 
-=head3 name_set()
+Argument is url or CGI::Application runmode name.
+Optional argument is a label, (the anchor text). 
 
-sets name of menu, argument is string
+If the first argument has no funny chars, it is treated as a runmode, instead of a url.
 
-=head3 add()
-
-argument is url or runmode
-optional argument is label 
-
-If the first argument has no funny chars, it is treated as a runmode.
-
-The label is what will appear in the link text
-If not provided, one will be made. 
+The label is what will appear in the link text,
+If not provided, one will be made. This is part of what this module does for you.
 If you have a runmode called see_more, the link text is "See More".
 
 The link will be 
@@ -258,23 +270,24 @@ The result is:
 
    <a href="?rm=view_tasks">View Tasks</a>
 
-=head3 loop()
+=head2 loop()
 
 get loop suitable for HTML::Template object
 See SYNOPSIS.
 
 =head2 count()
 
-returns count of items in this menu
+Takes no argument.
+Returns count of items in this menu. (Each item is a menu link.)
 
 =head2 menu_class()
 
-what the TMPL_VAR MAIN_MENU_CLASS will hold
+What the TMPL_VAR MAIN_MENU_CLASS will hold, this is the css name.
 
 =head2 menu_class_set()
 
-arg is string
-sets the TMPL_VAR MAIN_MENU_CLASS
+Arg is string.
+Sets the TMPL_VAR MAIN_MENU_CLASS css name. If not provided, one is generated for you.
 
 =head2 output()
 
@@ -284,7 +297,7 @@ The default template code is stored in:
    $CGI::Application::Plugin::MenuObject::DEFAULT_TMPL
 
 
-=head2 ADDING MENU ITEMS
+=head1 ADDING MENU ITEMS
 
    my $m = $self->menu_get('main menu');
 
@@ -296,13 +309,28 @@ Elements for the menu are shown in the order they are inserted.
 
 =head1 DEFAULT TEMPLATE
 
-You may want to change this.
+This is the default template:
 
    <div class="<TMPL_VAR MAIN_MENU_CLASS>"><p>
    <TMPL_LOOP MAIN_MENU_LOOP><nobr><b><a href="<TMPL_VAR URL>">[<TMPL_VAR LABEL>]</a></b></nobr>
    </TMPL_LOOP></p></div>
 
-One way to change it:
+
+You can feed your own template with:
+
+   my $m = HTML::Template::Menu->new;
+   $m->add('http://cpan.org');
+
+   my $tmpl = HTML::Template->new( scalarref => \q{
+   <div class="<TMPL_VAR MAIN_MENU_CLASS>"><p>
+   <TMPL_LOOP MAIN_MENU_LOOP><nobr><b><a href="<TMPL_VAR URL>">[<TMPL_VAR LABEL>]</a></b></nobr>
+   </TMPL_LOOP></p></div>
+   });
+
+   $tmpl->param( MENU_LOOP => $m->loop );
+
+
+One other way to change it:
 
    $HTML::Template::Menu::DEFAULT_TMPL = q{
    <div class="<TMPL_VAR MAIN_MENU_CLASS>"><p>
@@ -310,20 +338,58 @@ One way to change it:
    </TMPL_LOOP></p></div>
    };   
 
-Or you can just get the menu loop and inject into your template
 
-   my $menu_loop = $m->_get_main_menu_loop;
+=head1 ICONS
+
+Each menu item has the TMPL_VAR s set: LABEL, URL, ICON.
+ICON is a broken down simplification of whatever was in the URL.
+You may choose to use this to include icons.
+
+For example:
+
+   my $m = HTML::Template::Menu->new;
+   $m->add('http://cpan.org');
+
+   my $tmpl = HTML::Template->new( scalarref => \q{
+   <div class="<TMPL_VAR MAIN_MENU_CLASS>"><p>
+   <TMPL_LOOP MAIN_MENU_LOOP><nobr><b><img src="/icons/<TMPL_VAR ICON>"> 
+   <a href="<TMPL_VAR URL>">[<TMPL_VAR LABEL>]</a></b></nobr>
+   </TMPL_LOOP></p></div>
+   });
+
+   $tmpl->param( MENU_LOOP => $m->loop );
+
+This will create an entry such as:
+
+   <nobr><b>
+      <img src="/.icons/cpan.png">
+      <a href="http://cpan.org">[Cpan]</a></b></nobr></p>
+
+
+
+=head1 SEE ALSO
+
+L<HTML::Template> - the excellent HTML::Template module.
+L<CGI::Application::Plugin::Menu> - spinoff plugin for L<CGI::Application>.
 
 
 =head1 AUTHOR
 
-Leo CHarre leocharre at cpan dot org
+Leo Charre leocharre at cpan dot org
 
-=head1 SEE ALSO
+=head1 COPYRIGHT
 
-CGI::Application::Plugin::Menu
+Copyright (c) 2009 Leo Charre. All rights reserved.
+
+=head1 LICENSE
+
+This package is free software; you can redistribute it and/or modify it under the same terms as Perl itself, i.e., under the terms of the "Artistic License" or the "GNU General Public License".
+
+=head1 DISCLAIMER
+
+This package is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+See the "GNU General Public License" for more details.
 
 =cut
-
-
 
